@@ -7,6 +7,11 @@ import StartScreen from "./StartScreen";
 import Question from "./Question";
 import NextButton from "./NextButton";
 import Progress from "./Progress";
+import FinishScreen from "./FinishScreen";
+import Footer from "./Footer";
+import Timer from "./Timer";
+
+const SECS_PER_QUES = 20;
 
 const initialState = {
   questions: [],
@@ -18,6 +23,10 @@ const initialState = {
   yourAnswer: null,
   // question points
   points: 0,
+  // highscore
+  highscore: 0,
+  // timer
+  seconds: null,
 };
 
 function reducer(state, action) {
@@ -37,6 +46,7 @@ function reducer(state, action) {
       return {
         ...state,
         status: "active",
+        seconds: state.questions.length * SECS_PER_QUES,
       };
     case "Answered":
       // making a variable from the current state which is (state.questions)
@@ -56,6 +66,30 @@ function reducer(state, action) {
         index: state.index + 1,
         yourAnswer: null,
       };
+    case "finished":
+      return {
+        ...state,
+        status: "finished",
+        highscore:
+          state.points > state.highscore ? state.points : state.highscore,
+      };
+    case "restart":
+      return {
+        ...state,
+        index: 0,
+        yourAnswer: null,
+        points: 0,
+        highscore: 0,
+        status: "ready",
+        seconds: initialState.seconds,
+      };
+
+    case "timer":
+      return {
+        ...state,
+        seconds: state.seconds - 1,
+        status: state.seconds === 0 ? "finished" : "active",
+      };
     default:
       throw new Error("Unknown Action by the User");
   }
@@ -63,7 +97,8 @@ function reducer(state, action) {
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { questions, status, index, yourAnswer, points } = state;
+  const { questions, status, index, yourAnswer, points, highscore, seconds } =
+    state;
   const numOfQuestions = questions.length;
   const fullPoints = questions.reduce((acc, curr) => acc + curr.points, 0);
   // console.log(numOfQuestions);
@@ -100,8 +135,24 @@ export default function App() {
                 yourAnswer={yourAnswer}
                 dispatch={dispatch}
               />
-              <NextButton dispatch={dispatch} yourAnswer={yourAnswer} />
+              <Footer>
+                <Timer dispatch={dispatch} seconds={seconds} />
+                <NextButton
+                  dispatch={dispatch}
+                  yourAnswer={yourAnswer}
+                  index={index}
+                  numOfQuestions={numOfQuestions}
+                />
+              </Footer>
             </>
+          )}
+          {status === "finished" && (
+            <FinishScreen
+              points={points}
+              fullPoints={fullPoints}
+              highscore={highscore}
+              dispatch={dispatch}
+            />
           )}
         </Main>
       </div>
